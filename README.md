@@ -15,19 +15,26 @@ The FastAPI app implements a minimal Fibonacci sequence calculator. The purpose 
 
 ## Fibonacci-api
 - get the n-th number in Fibonacci sequence
-- get the `[1,Nth]` range of numers in Fibnoacci sequence (default pagination: `100`)
+- get the `[1,Nth]` range of numbers in Fibnoacci sequence (default pagination: `100`)
 - add/remove sequence numbers to a exclude-list, these numbers will be redacted from the responses. The list is stored in-memory application state.
 
 ## Running the application
 
+The following command launches the API on localhost:8000
 ```sh
 $ hatch run dev 
 ```
+
+API Documentation:
+http://localhost:8000/docs#/
+
+Run tests:
 
 ```sh
 $ hatch test 
 ```
 
+Run in container:
 ```sh
 $ podman compose up 
 ```
