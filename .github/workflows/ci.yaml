@@ -34,6 +34,6 @@ jobs:
       run: pip install -U hatch
 
     - name: Tests
-      run: hatch test
+      run: hatch run +py=${{ matrix.python-version }} test:test
 
 
