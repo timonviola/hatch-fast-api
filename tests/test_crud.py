@@ -1,4 +1,6 @@
 import pytest
+from hypothesis import given
+from hypothesis.strategies import integers
 from fibonacci_api import crud
 
 
@@ -8,6 +10,10 @@ from fibonacci_api import crud
 )
 def test_calculate_fibonacci(test_input: int, expected: int):
     assert crud.calculate_fibonacci(test_input) == expected
+
+@given(integers(min_value=2, max_value=30))
+def test_fibonacci_rule(n: int):
+    assert crud.calculate_fibonacci(n) == crud.calculate_fibonacci(n-1) + crud.calculate_fibonacci(n-2)
 
 
 def test_calculate_fibonacci_wrong_input():

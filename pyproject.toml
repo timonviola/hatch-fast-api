@@ -44,7 +44,9 @@ test = "pytest tests"
 
 [tool.hatch.envs.test]
 extra-dependencies = [
-  "pytest>=6.0.0",
+  "pytest>=8.0.0",
+  "hypothesis>=6.0.0",
+  "schemathesis==3.39.16"
 ]
 [tool.hatch.envs.test.scripts]
 test = "pytest {args:tests}"
