@@ -7,16 +7,13 @@ elements that precede it. The Fibonacci sequence is numbered from 0. such as:
 [Ref](https://en.wikipedia.org/wiki/Fibonacci_sequence)
 """
 
-from typing import Annotated
-
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field, PositiveInt
+from pydantic import BaseModel, PositiveInt
 from fastapi import APIRouter
 from enum import Enum
-from functools import cache
 
-# Fibonacci sequence numbers are Int and x <= 0
-SequenceNumber = Annotated[int, Field(ge=0)]
+from fibonacci_api import crud
+from fibonacci_api.types import SequenceNumber
 
 
 class Versions(Enum):
@@ -29,32 +26,6 @@ app = FastAPI(title="Fibonacci-api", summary=_summary, description=_description)
 
 API_VERSION_1 = "/api/v1"
 router_v1 = APIRouter(prefix=Versions.v1.value, tags=[Versions.v1])
-
-SEQUENCE_NUMBER_BLOCK_LIST: set[SequenceNumber] = set()
-
-
-@cache
-def calculate_fibonacci(n: SequenceNumber) -> SequenceNumber:
-    """Calculate the `n`th fibonacci sequence number.
-
-    This function is naively cached.
-
-    Raises:
-        ValueError
-    """
-    match n:
-        case 0:
-            return 0
-        case 1:
-            return 1
-        case n if n >= 2:
-            return calculate_fibonacci(n - 1) + calculate_fibonacci(n - 2)
-        case _:
-            raise ValueError
-
-
-async def get_fibonacci(n: SequenceNumber) -> SequenceNumber:
-    return calculate_fibonacci(n)
 
 
 class HealthCheck(BaseModel):
@@ -77,9 +48,10 @@ def read_root():
 @router_v1.get("/fibonacci/{sequence_number}")
 async def get_item(sequence_number: SequenceNumber):
     """Return the `n`th Fibonacci number."""
-    if sequence_number in SEQUENCE_NUMBER_BLOCK_LIST:
-        raise HTTPException(status_code=409, detail="Item on block list.") 
-    return await get_fibonacci(sequence_number)
+    try:
+        return await crud.get_fibonacci(sequence_number)
+    except crud.ValueOnBlockList:
+        raise HTTPException(status_code=409, detail="Item on block list.")
 
 
 @router_v1.get("/fibonacci_range/{sequence_number}")
@@ -92,41 +64,36 @@ async def get_range(
 
     Returns empty response if pagination/limit is configured out of range.
     """
-    return {
-        i: await get_fibonacci(i)
-        for i in range(page * limit, min(sequence_number, (page + 1) * limit))
-        if i not in SEQUENCE_NUMBER_BLOCK_LIST
-    }
+    return await crud.get_fibonacci_range(sequence_number, page, limit)
 
-@router_v1.post("/fibonacci/block/{sequence_number}", status_code=201, tags=["blocklist"])
+
+@router_v1.patch(
+    "/fibonacci/block/{sequence_number}", status_code=201, tags=["blocklist"]
+)
 def add_to_block_list(sequence_number: SequenceNumber) -> set[SequenceNumber]:
     """Add a number to the block list."""
-    global SEQUENCE_NUMBER_BLOCK_LIST
-    SEQUENCE_NUMBER_BLOCK_LIST |= set([sequence_number])
-    return SEQUENCE_NUMBER_BLOCK_LIST
+    return crud.update_block_list(sequence_number)
+
 
 @router_v1.get("/fibonacci/block/", tags=["blocklist"])
 def get_block_list() -> set[SequenceNumber]:
     """Show the block list."""
-    return SEQUENCE_NUMBER_BLOCK_LIST
+    return crud.get_block_list()
+
 
 @router_v1.delete("/fibonacci/block/{sequence_number}", tags=["blocklist"])
-def remove_from_block_list(sequence_number: SequenceNumber) -> set[SequenceNumber]:
+def remove_from_block_list(
+    sequence_number: SequenceNumber,
+) -> set[SequenceNumber]:
     """Drop single item from drop list."""
-    global SEQUENCE_NUMBER_BLOCK_LIST
-    try:
-        SEQUENCE_NUMBER_BLOCK_LIST.remove(sequence_number)
-    except KeyError:
-        # Number was not part of the list.
-        pass
-    return SEQUENCE_NUMBER_BLOCK_LIST
+    return crud.delete_from_block_list(sequence_number)
+
 
 @router_v1.delete("/fibonacci/block/", status_code=204, tags=["blocklist"])
-def remove_all_from_block_list():
+def remove_all_from_block_list() -> None:
     """Drop all from block list."""
-    global SEQUENCE_NUMBER_BLOCK_LIST
-    SEQUENCE_NUMBER_BLOCK_LIST = set()
-    return SEQUENCE_NUMBER_BLOCK_LIST
+    return crud.delete_all_from_block_list()
+
 
 @app.get(
     "/health",
@@ -137,14 +104,16 @@ def remove_all_from_block_list():
     response_model=HealthCheck,
 )
 def get_health() -> HealthCheck:
-    """
-    ## Perform a Health Check
-    Endpoint to perform a healthcheck on. This endpoint can primarily be used Docker
+    """Endpoint to perform a healthcheck on.
+
+    This endpoint can primarily be used Docker
     to ensure a robust container orchestration and management is in place. Other
     services which rely on proper functioning of the API service will not deploy if this
     endpoint returns any other HTTP status code except 200 (OK).
     Returns:
         HealthCheck: Returns a JSON response with the health status
+
+    Reference: https://gist.github.com/Jarmos-san/0b655a3f75b698833188922b714562e5
     """
     return HealthCheck(status="OK")
 
