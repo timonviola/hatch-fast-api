@@ -2,6 +2,7 @@
 
 [Docs](https://schemathesis.readthedocs.io/en/stable/index.html)
 """
+
 import schemathesis
 from schemathesis.specs.openapi.loaders import from_asgi
 

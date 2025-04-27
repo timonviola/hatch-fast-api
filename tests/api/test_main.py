@@ -14,15 +14,20 @@ def test_read_root():
     assert content["summary"] == app.summary
     assert content["description"] == app.description
 
+
 def test_get_fibonacci_number():
     fibonacci_val = 1
     response = client.get(Versions.v1.value + f"/fibonacci/{fibonacci_val}")
     assert response.status_code == 200
-    assert int(response.content.decode("utf-8")) == crud.calculate_fibonacci(fibonacci_val)
+    assert int(response.content.decode("utf-8")) == crud.calculate_fibonacci(
+        fibonacci_val
+    )
 
 
 @given(st.integers(min_value=0))
 def test_add_to_block_list(sequence_number: int):
-    response = client.patch(Versions.v1.value + f"/fibonacci/block/{sequence_number}")
+    response = client.patch(
+        Versions.v1.value + f"/fibonacci/block/{sequence_number}"
+    )
     assert response.status_code == 201
     assert sequence_number in response.json()

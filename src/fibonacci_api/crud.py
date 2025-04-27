@@ -1,7 +1,6 @@
 """CRUD operations."""
 
 from functools import cache
-from typing import Sequence
 from pydantic import PositiveInt
 from fibonacci_api.types import SequenceNumber
 
@@ -50,7 +49,7 @@ async def get_fibonacci_range(
 ) -> dict[int, SequenceNumber]:
     return {
         i: await get_fibonacci(i)
-        for i in get_page(sequence_number, page, limit) 
+        for i in get_page(sequence_number, page, limit)
         if i not in _block.SEQUENCE_NUMBER_BLOCK_LIST
     }
 
