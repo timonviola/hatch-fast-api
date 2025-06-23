@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: fibonapi-pod
+  name: fibonapi-pod
+spec:
+  containers:
+  - env:
+    - name: NO_PROXY
+      value: local,169.254/16
+    image: localhost/fibonacci:latest
+    name: fibonapi
+    ports:
+    - containerPort: 8000
+      hostPort: 50555

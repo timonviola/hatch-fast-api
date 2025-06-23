@@ -33,10 +33,21 @@ Run tests:
 ```sh
 $ hatch test 
 ```
-
+Build the container image:
+```sh
+podman build . -t fibonacci:latest
+```
 Run in container:
 ```sh
-$ podman compose up 
+podman run -it -p 50556:8000 --rm --name fibonacci fibonacci:latest
+```
+Run with  compose:
+```sh
+$ podman compose up --build
+```
+or run in local cluser (e.g.: [Kind](https://kind.sigs.k8s.io/))
+```sh
+$ podman play kube deployment.yaml
 ```
 ## Deployment
 
